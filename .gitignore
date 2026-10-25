@@ -1,0 +1,93 @@
+.venv/
+venv/
+frontend/node_modules/
+frontend/dist/
+.runtime-cache/
+__pycache__/
+*.py[cod]
+.env
+.local/
+keys/ckks_secret_context.bin
+database/metadata.db
+database/metadata_v2.db
+database/encrypted_templates/
+database/encrypted_templates_v2/
+templates/
+data/debug/
+# Local secrets and cryptographic material
+keys/*secret*
+keys/*private*
+server/config/*secret*
+server/config/*private*
+
+# Local databases and biometric data
+database/*.db
+database/*.sqlite*
+database/encrypted_templates/
+database/encrypted_templates_v2/
+data/lfw/
+data/LFW_DEMO/
+data/LFW_IMAGES/
+data/debug/
+
+# Local environments and generated files
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.env
+.env.*
+frontend/node_modules/
+frontend/dist/
+.runtime-cache/
+
+# Keep local cryptographic contexts and runtime credentials out of GitHub
+keys/*context*.bin
+server/config/*context*.bin
+*api_token*
+server_api_token
+
+# Keep biometric data and local databases private
+database/*.db
+database/*.sqlite*
+database/encrypted_templates/
+database/encrypted_templates_v2/
+data/lfw/
+data/LFW_DEMO/
+data/LFW_IMAGES/
+
+# Local archives and macOS/editor artifacts
+archive.zip
+CipherFace_source.zip
+.DS_Store
+:memory:.ses
+=
+
+# Local test images, backups, and generated evaluation outputs
+*.save
+frontend/src/App_backup.jsx
+data/enrollment/*.jpg
+data/probes/*.jpg
+results/
+
+# Additional local secrets and cryptographic material
+*.pem
+*.key
+*.p12
+*.pfx
+*.secret
+*secret_context*
+*private_context*
+
+# Environment variables and credentials
+.env.*
+!.env.example
+secrets/
+credentials/
+secrets.json
+credentials.json
+
+# Generated logs and temporary files
+*.log
+*.tmp
+*.bak
