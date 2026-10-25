@@ -269,17 +269,41 @@ def _audit(
 
 
 @app.post("/api/demo-login")
-def demo_login(password: str = Form(...)) -> dict:
-    """Development-only UI gate; set CIPHERFACE_DEMO_PASSWORD before launching.
+def demo_login(
+    username: str = Form(...),
+    password: str = Form(...),
+    role: str = Form(...)
+) -> dict:
+    credentials = {
+        "client": {
+            "username": "user",
+            "password": "user123"
+        },
+        "server": {
+            "username": "admin",
+            "password": "admin123"
+        }
+    }
 
-    This is not production identity management and does not replace API auth.
-    The local API remains loopback-only and the client-to-server bearer token
-    remains backend-only.
-    """
-    expected = os.environ.get("CIPHERFACE_DEMO_PASSWORD", "cipherface-demo")
-    if not secrets.compare_digest(password, expected):
-        raise HTTPException(status_code=401, detail="Incorrect demo password.")
-    return {"authenticated": True, "mode": "development-demo-login"}
+    expected = credentials.get(role)
+
+    if not expected:
+        raise HTTPException(status_code=401, detail="Invalid role.")
+
+    if (
+        not secrets.compare_digest(username, expected["username"])
+        or not secrets.compare_digest(password, expected["password"])
+    ):
+        raise HTTPException(
+            status_code=401,
+            detail="Incorrect username or password."
+        )
+
+    return {
+        "authenticated": True,
+        "role": role,
+        "mode": "development-demo-login"
+    }
 
 @app.get("/api/health")
 def health() -> dict:

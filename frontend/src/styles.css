@@ -805,3 +805,479 @@ body { background: #050507; }
   background: rgb(75 17 30 / 75%);
   border-color: #b43c52;
 }
+
+/* ===== CIPHERFACE LANDING PAGE ===== */
+
+.cf-landing {
+  min-height: 100vh;
+  background: #080b12;
+  color: #f4f6fb;
+  font-family: inherit;
+  overflow: hidden;
+}
+
+.cf-landing-header {
+  min-height: 78px;
+  padding: 0 7%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.09);
+}
+
+.cf-landing-header .brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.cf-landing-header .brand-mark {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  color: #9b8cff;
+  background: rgba(139, 124, 255, 0.12);
+  border: 1px solid rgba(155, 140, 255, 0.3);
+  border-radius: 12px;
+}
+
+.cf-landing-header .brand-wordmark {
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: 2.5px;
+}
+
+.cf-landing-tag {
+  color: #858da1;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.7px;
+}
+
+.cf-landing-main {
+  width: min(1050px, 86%);
+  margin: 0 auto;
+  padding: 100px 0 38px;
+}
+
+.cf-landing-eyebrow {
+  color: #a99cff;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 2.5px;
+  margin-bottom: 22px;
+}
+
+.cf-landing-main h1 {
+  margin: 0;
+  font-size: clamp(38px, 5.5vw, 66px);
+  font-weight: 750;
+  letter-spacing: -2.8px;
+  line-height: 1.12;
+}
+
+.cf-landing-main h1 span {
+  color: #a99cff;
+}
+
+.cf-landing-description {
+  max-width: 590px;
+  margin: 24px 0 48px;
+  color: #a0a8ba;
+  font-size: 15px;
+  line-height: 1.9;
+}
+
+.cf-role-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22px;
+}
+
+.cf-role-card {
+  min-height: 290px;
+  padding: 30px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  color: #f4f6fb;
+  background: #101521;
+  border: 1px solid #242b3b;
+  border-radius: 18px;
+  cursor: pointer;
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    background 180ms ease;
+}
+
+.cf-role-card:hover {
+  transform: translateY(-4px);
+  border-color: #8d7cff;
+  background: #141a2a;
+}
+
+.cf-role-card:focus-visible {
+  outline: 2px solid #a99cff;
+  outline-offset: 4px;
+}
+
+.cf-role-icon {
+  width: 54px;
+  height: 54px;
+  margin-bottom: 25px;
+  display: grid;
+  place-items: center;
+  color: #b4a8ff;
+  background: rgba(139, 124, 255, 0.12);
+  border: 1px solid rgba(155, 140, 255, 0.25);
+  border-radius: 15px;
+}
+
+.cf-role-label {
+  margin-bottom: 10px;
+  color: #858da1;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1.6px;
+}
+
+.cf-role-card > strong {
+  margin-bottom: 12px;
+  font-size: 23px;
+  font-weight: 700;
+}
+
+.cf-role-description {
+  color: #a0a8ba;
+  font-size: 13px;
+  line-height: 1.8;
+}
+
+.cf-role-action {
+  margin-top: auto;
+  padding-top: 25px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: #b4a8ff;
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.cf-landing-footer {
+  margin-top: 50px;
+  padding-top: 22px;
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 15px;
+  border-top: 1px solid rgba(255, 255, 255, 0.09);
+  color: #737d92;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+}
+
+.cf-landing-footer span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+@media (max-width: 640px) {
+  .cf-landing-header {
+    padding: 18px 6%;
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .cf-landing-tag {
+    font-size: 9px;
+  }
+
+  .cf-landing-main {
+    width: 88%;
+    padding-top: 65px;
+  }
+
+  .cf-landing-main h1 {
+    letter-spacing: -1.5px;
+  }
+
+  .cf-landing-description {
+    margin-bottom: 32px;
+  }
+
+  .cf-role-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .cf-role-card {
+    min-height: 260px;
+    padding: 24px;
+  }
+
+  .cf-landing-footer {
+    flex-direction: column;
+  }
+}
+
+/* ==========================================
+   CIPHERFACE — PREMIUM ROLE SELECTION PAGE
+========================================== */
+
+.cf-landing {
+  min-height: 100vh;
+  width: 100%;
+  background:
+    radial-gradient(
+      ellipse at 50% 35%,
+      rgba(45, 85, 160, 0.16) 0%,
+      transparent 55%
+    ),
+    #080d17;
+  color: #edf2ff;
+  font-family: Inter, "Segoe UI", sans-serif;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+/* HEADER */
+
+.cf-landing-header {
+  width: 100%;
+  height: 78px;
+  padding: 0 7%;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(148, 170, 210, 0.12);
+  background: rgba(8, 13, 23, 0.85);
+}
+
+.cf-login-mark {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #8ab4ff;
+  background: rgba(69, 117, 201, 0.1);
+  border: 1px solid rgba(115, 159, 235, 0.35);
+  border-radius: 12px;
+  flex-shrink: 0;
+}
+
+.cf-landing-header > div:last-child {
+  text-align: right;
+}
+
+.cf-landing-header .eyebrow {
+  color: #83adff;
+  font-family: monospace;
+  font-size: 10px;
+  letter-spacing: 2.5px;
+  margin-bottom: 5px;
+}
+
+.cf-landing-header p {
+  margin: 0;
+  color: #d9e4fa;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.8px;
+}
+
+/* MAIN CONTENT */
+
+.cf-landing-main {
+  width: min(100% - 48px, 1050px);
+  margin: auto;
+  padding: 70px 0 100px;
+  box-sizing: border-box;
+}
+
+.cf-landing-main > .eyebrow {
+  color: #8ab4ff;
+  font-family: monospace;
+  font-size: 11px;
+  letter-spacing: 3px;
+  text-align: center;
+  margin-bottom: 18px;
+}
+
+.cf-landing-main h1 {
+  margin: 0;
+  color: #f4f7ff;
+  font-size: clamp(38px, 4.5vw, 64px);
+  font-weight: 750;
+  line-height: 1.15;
+  letter-spacing: -2px;
+  text-align: center;
+}
+
+.cf-landing-main > p {
+  margin: 18px 0 46px;
+  color: #aab8d1;
+  font-size: 16px;
+  line-height: 1.7;
+  text-align: center;
+}
+
+/* ROLE SELECTION CARDS */
+
+.cf-role-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 26px;
+  width: 100%;
+}
+
+.cf-role-card {
+  position: relative;
+  min-height: 280px;
+  padding: 34px;
+  box-sizing: border-box;
+
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+
+  font-family: inherit;
+  color: #edf3ff;
+  background: linear-gradient(
+    145deg,
+    #131d30 0%,
+    #0e1625 100%
+  );
+
+  border: 1px solid #293750;
+  border-radius: 18px;
+  cursor: pointer;
+
+  transition:
+    transform 200ms ease,
+    border-color 200ms ease,
+    background 200ms ease,
+    box-shadow 200ms ease;
+}
+
+.cf-role-card > svg {
+  width: 48px;
+  height: 48px;
+  padding: 11px;
+  box-sizing: border-box;
+
+  color: #8ab4ff;
+  background: rgba(91, 143, 232, 0.12);
+  border: 1px solid rgba(120, 166, 245, 0.2);
+  border-radius: 12px;
+
+  margin-bottom: 25px;
+}
+
+.cf-role-card h2 {
+  margin: 0 0 12px;
+  color: #f4f7ff;
+  font-size: 23px;
+  font-weight: 650;
+  letter-spacing: -0.4px;
+}
+
+.cf-role-card p {
+  margin: 0;
+  max-width: 360px;
+  color: #aebbd2;
+  font-size: 15px;
+  line-height: 1.8;
+}
+
+.cf-role-card span {
+  margin-top: auto;
+  padding-top: 28px;
+  color: #8ab4ff;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1.1px;
+}
+
+/* HOVER EFFECTS */
+
+.cf-role-card:hover {
+  transform: translateY(-6px);
+  border-color: #6597ed;
+  background: linear-gradient(
+    145deg,
+    #182742 0%,
+    #111d32 100%
+  );
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+}
+
+.cf-role-card:hover > svg {
+  color: #b2ceff;
+  background: rgba(91, 143, 232, 0.2);
+}
+
+.cf-role-card:focus-visible {
+  outline: 2px solid #8ab4ff;
+  outline-offset: 5px;
+}
+
+/* TABLET AND MOBILE */
+
+@media (max-width: 700px) {
+  .cf-landing-header {
+    height: 70px;
+    padding: 0 22px;
+  }
+
+  .cf-landing-header p {
+    max-width: 190px;
+    font-size: 10px;
+  }
+
+  .cf-landing-main {
+    width: calc(100% - 36px);
+    padding: 55px 0;
+  }
+
+  .cf-landing-main h1 {
+    font-size: clamp(34px, 8vw, 46px);
+    letter-spacing: -1.5px;
+  }
+
+  .cf-landing-main > p {
+    margin-bottom: 32px;
+    font-size: 14px;
+  }
+
+  .cf-role-grid {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+
+  .cf-role-card {
+    min-height: 245px;
+    padding: 26px;
+  }
+
+  .cf-role-card h2 {
+    font-size: 21px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cf-role-card,
+  .cf-role-card > svg {
+    transition: none;
+  }
+}

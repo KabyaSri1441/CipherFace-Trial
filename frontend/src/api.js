@@ -82,8 +82,10 @@ export function getLfwIdentity(name) {
   return request(`/api/lfw/identity/${encodeURIComponent(name)}`);
 }
 
-export function demoLogin(password) {
+export function demoLogin(username, password, role) {
   const body = new FormData();
+  body.append("username", username);
   body.append("password", password);
+  body.append("role", role);
   return request("/api/demo-login", { method: "POST", body });
 }

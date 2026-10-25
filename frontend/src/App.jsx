@@ -74,7 +74,9 @@ const initialStatus = {
 
 function App() {
   const [authenticated, setAuthenticated] = useState(false);
+  const [selectedRole, setSelectedRole] = useState(null);
   const [loginPassword, setLoginPassword] = useState("");
+  const [loginUsername, setLoginUsername] = useState("");
   const [loginError, setLoginError] = useState("");
   const [activeView, setActiveView] = useState("overview");
   const [clientAction, setClientAction] = useState("verify");
@@ -95,27 +97,36 @@ function App() {
   const [conferenceMode, setConferenceMode] = useState(false);
 
   const navigation = [
-    ["overview", "Command Center", Activity],
-    ["client", "Client Console", Fingerprint],
-    ["server", "Server Console", Server],
-    ["verification", "Verification", ScanFace],
+    ["overview", "Home", Activity],
+    ["client", "User Portal", Fingerprint],
     ["enrollment", "Enrollment", UserRoundPlus],
-    ["privacy", "Privacy Center", LockKeyhole],
-    ["security", "Threat Model", ShieldCheck],
-    ["research", "Research & Evaluation", Zap],
-    ["templates", "Template Registry", Database],
+    ["server", "Server Console", Server],
   ];
+  const visibleNavigation = navigation.filter(([id]) => {
+    if (activeView === "client") return id === "client";
 
+    if (activeView === "server" || activeView === "enrollment") {
+      return id === "server" || id === "enrollment";
+    }
+
+    return id === "overview";
+  });
 
   async function submitLogin(event) {
     event.preventDefault();
     setLoginError("");
+
     try {
-      await demoLogin(loginPassword);
+      await demoLogin(loginUsername, loginPassword, selectedRole);
+
       setAuthenticated(true);
-      setActiveView("overview");
+
+      setActiveView(selectedRole);
+
       setConferenceMode(false);
       setLoginPassword("");
+      setSelectedRole(null);
+
       refresh();
     } catch (error) {
       setLoginError(error.message || "Login failed.");
@@ -263,7 +274,7 @@ function App() {
     action: activeView === "enrollment" ? "enroll" : clientAction,
     setAction: (action) => {
       setClientAction(action);
-      setActiveView(action === "enroll" ? "enrollment" : "verification");
+      setActiveView(action === "enroll" ? "enrollment" : "client");
     },
     busy, verifyFile, setVerifyFile, enrollFile, setEnrollFile, name, setName,
     claimedUser, setClaimedUser, result, inspection,
@@ -274,18 +285,138 @@ function App() {
 
 
   if (!authenticated) {
+    if (!selectedRole) {
+      return (
+        <div className="cf-landing">
+          <header className="cf-landing-header">
+            <div className="cf-login-mark">
+              <Fingerprint size={28} />
+            </div>
+
+            <div>
+              <div className="eyebrow">CIPHERFACE</div>
+              <p>PRIVACY-PRESERVING FACE VERIFICATION</p>
+            </div>
+          </header>
+
+          <main className="cf-landing-main">
+            <div className="eyebrow">SECURE ACCESS</div>
+
+            <h1>Welcome to CipherFace.</h1>
+
+            <p>Select your workspace to continue.</p>
+
+            <div className="cf-role-grid">
+              <button
+                type="button"
+                className="cf-role-card"
+                onClick={() => setSelectedRole("client")}
+              >
+                <Fingerprint size={30} />
+
+                <h2>User Portal</h2>
+
+                <p>
+                  Submit face verification requests and view your results.
+                </p>
+
+                <span>CONTINUE AS USER →</span>
+              </button>
+
+              <button
+                type="button"
+                className="cf-role-card"
+                onClick={() => setSelectedRole("server")}
+              >
+                <Server size={30} />
+
+                <h2>Server Console</h2>
+
+                <p>
+                  Access server-side verification and system information.
+                </p>
+
+                <span>CONTINUE AS ADMIN →</span>
+              </button>
+            </div>
+          </main>
+        </div>
+      );
+    }
+  }
+
+  if (!authenticated && selectedRole) {
     return (
       <div className="cf-login-screen">
         <form className="cf-login-card" onSubmit={submitLogin}>
-          <div className="cf-login-mark"><Fingerprint size={28} /></div>
-          <div className="eyebrow">CIPHERFACE / AUTHENTICATION NODE</div>
-          <h1>Sign in</h1>
-          <p>Access the local client console and ciphertext server console.</p>
-          <label htmlFor="cf-login-password">Demo password</label>
-          <input id="cf-login-password" type="password" autoComplete="current-password" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} required placeholder="Enter demo password" />
-          {loginError && <div className="cf-login-error" role="alert">{loginError}</div>}
-          <button className="cf-login-submit" type="submit"><LogIn size={16} /> SIGN IN</button>
-          <small>Development demo gate. Default password: <code>cipherface-demo</code>. Set CIPHERFACE_DEMO_PASSWORD before launch to change it. This is not production authentication.</small>
+          <button
+            type="button"
+            className="cf-back-button"
+            onClick={() => {
+              setSelectedRole(null);
+              setLoginPassword("");
+              setLoginError("");
+            }}
+          >
+            ← Back to role selection
+          </button>
+
+          <div className="cf-login-mark">
+            {selectedRole === "client" ? (
+              <Fingerprint size={28} />
+            ) : (
+              <Server size={28} />
+            )}
+          </div>
+
+          <div className="eyebrow">CIPHERFACE / SECURE ACCESS</div>
+
+          <h1>
+            {selectedRole === "client"
+              ? "User Portal"
+              : "Server Console"}
+          </h1>
+
+          <p>
+            {selectedRole === "client"
+              ? "Sign in to access face verification."
+              : "Sign in to access the administrative console."}
+          </p>
+          <label htmlFor="cf-login-username">Username</label>
+          <input
+            id="cf-login-username"
+            type="text"
+            autoComplete="username"
+            value={loginUsername}
+            onChange={(e) => setLoginUsername(e.target.value)}
+            required
+            placeholder="Enter your username"
+          />
+          <label htmlFor="cf-login-password">Password</label>
+          <input
+            id="cf-login-password"
+            type="password"
+            autoComplete="current-password"
+            value={loginPassword}
+            onChange={(e) => setLoginPassword(e.target.value)}
+            required
+            placeholder="Enter your password"
+          />
+
+          {loginError && (
+            <div className="cf-login-error" role="alert">
+              {loginError}
+            </div>
+          )}
+
+          <button className="cf-login-submit" type="submit">
+            <LogIn size={16} />
+            SIGN IN
+          </button>
+
+          <small>
+            Authorized access only.
+          </small>
         </form>
       </div>
     );
@@ -317,7 +448,7 @@ function App() {
 
       <div className="product-nav-wrap">
         <nav className="product-nav" aria-label="CipherFace sections">
-          {navigation.map(([id, label, Icon]) => (
+          {visibleNavigation.map(([id, label, Icon]) => (
             <button key={id} className={activeView === id ? "product-nav-item active" : "product-nav-item"} onClick={() => setActiveView(id)}>
               <Icon size={15} /> {label}
             </button>
@@ -345,13 +476,46 @@ function App() {
             workspace={<ClientWorkspace {...workspaceProps} encryptedEmbedding={encryptedEmbedding} hideActionSelector />}
           />
         )}
-        {(activeView === "verification" || activeView === "enrollment" || activeView === "client") && (
+        {(activeView === "client") && (
           <>
             {activeView === "client" && <div className="console-intro"><div className="eyebrow">TRUSTED LOCAL PROCESS / PORT 8001</div><h2>Client Console</h2><p>Image processing and plaintext embeddings stay local. The serialized CKKS ciphertext below is the actual payload returned by the client after transmission.</p></div>}
             <ClientWorkspace {...workspaceProps} encryptedEmbedding={encryptedEmbedding} hideActionSelector />
           </>
         )}
-        {activeView === "server" && <ServerConsole status={status} templates={templates} result={result} encryptedEmbedding={encryptedEmbedding} claimedUser={claimedUser} setClaimedUser={setClaimedUser} busy={busy} onVerify={submitManualVerification} />}
+        {activeView === "server" && (
+          <>
+            <ServerConsole
+              status={status}
+              templates={templates}
+              result={result}
+              encryptedEmbedding={encryptedEmbedding}
+              claimedUser={claimedUser}
+              setClaimedUser={setClaimedUser}
+              busy={busy}
+              onVerify={submitManualVerification}
+            />
+
+            {activeView === "enrollment" && (
+              <>
+                <div className="console-intro">
+                  <div className="eyebrow">TRUSTED LOCAL PROCESS / PORT 8001</div>
+                  <h2>Enrollment Console</h2>
+                  <p>
+                    Register a new identity. Face processing happens locally,
+                    and only the encrypted template is stored.
+                  </p>
+                </div>
+
+                <ClientWorkspace
+                  {...workspaceProps}
+                  action="enroll"
+                  encryptedEmbedding={encryptedEmbedding}
+                  hideActionSelector
+                />
+              </>
+            )}
+          </>
+        )}
         {activeView === "privacy" && <PrivacyCenter status={status} auditEvents={auditEvents} />}
         {activeView === "security" && <ThreatModel status={status} />}
         {activeView === "research" && <ResearchView research={research} />}
