@@ -7,6 +7,8 @@ import json
 import os
 import re
 import secrets
+import sqlite3
+import hashlib
 from functools import lru_cache
 from io import BytesIO
 from pathlib import Path
@@ -83,6 +85,8 @@ _MAX_IMAGE_PIXELS = 20_000_000
 _NAME_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9 _.-]{0,79}$")
 _LFW_ROOT = Path("data/lfw/lfw-deepfunneled/lfw-deepfunneled")
 _RESULTS = Path("results")
+_CIPHERTEXT_LOG_DIR = Path("database/verification_ciphertexts")
+_CIPHERTEXT_LOG_DIR.mkdir(parents=True, exist_ok=True)
 _AUDIT = PrivacyAudit()
 _RATE_LIMITER = RequestRateLimiter()
 _ALLOWED_BROWSER_ORIGINS = {"http://localhost:5173", "http://127.0.0.1:5173"}
@@ -346,6 +350,91 @@ def templates() -> list[dict]:
     result = _server_request("/api/templates")
     return result if isinstance(result, list) else []
 
+@app.get("/api/verification-logs")
+def verification_logs() -> list[dict]:
+    metadata_db = MetadataDatabase()
+
+    with metadata_db._connect() as conn:
+        conn.row_factory = sqlite3.Row
+        rows = conn.execute("""
+            SELECT
+                id,
+                user_id,
+                timestamp,
+                decision,
+                similarity,
+                threshold,
+                ciphertext_sha256,
+                ciphertext_bytes,
+                request_id
+            FROM verification_logs
+            ORDER BY id DESC
+        """).fetchall()
+
+    return [dict(row) for row in rows]
+
+@app.get("/api/verification-logs/{log_id}/ciphertext")
+def get_verification_ciphertext(log_id: int) -> dict:
+    if log_id <= 0:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid verification log ID.",
+        )
+
+    metadata_db = MetadataDatabase()
+
+    with metadata_db._connect() as conn:
+        conn.row_factory = sqlite3.Row
+        log = conn.execute(
+            """
+            SELECT ciphertext_sha256, ciphertext_bytes
+            FROM verification_logs
+            WHERE id = ?
+            """,
+            (log_id,),
+        ).fetchone()
+
+    if log is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Verification log not found.",
+        )
+
+    ciphertext_path = _CIPHERTEXT_LOG_DIR / f"{log_id}.bin"
+
+    if not ciphertext_path.is_file():
+        raise HTTPException(
+            status_code=404,
+            detail="Ciphertext is unavailable for this verification log.",
+        )
+
+    ciphertext = ciphertext_path.read_bytes()
+    actual_sha256 = hashlib.sha256(ciphertext).hexdigest()
+
+    expected_sha256 = log["ciphertext_sha256"]
+    expected_bytes = log["ciphertext_bytes"]
+
+    if expected_sha256 and actual_sha256 != expected_sha256:
+        raise HTTPException(
+            status_code=409,
+            detail="Ciphertext SHA-256 verification failed.",
+        )
+
+    if expected_bytes is not None and len(ciphertext) != expected_bytes:
+        raise HTTPException(
+            status_code=409,
+            detail="Ciphertext size verification failed.",
+        )
+
+    return {
+        "log_id": log_id,
+        "ciphertext_base64": base64.b64encode(
+            ciphertext
+        ).decode("ascii"),
+        "sha256": actual_sha256,
+        "bytes": len(ciphertext),
+        "integrity_ok": True,
+    }
 
 @app.get("/api/audit")
 def audit_events() -> list[dict]:
@@ -462,6 +551,21 @@ async def verify(
     ) * 1000
 
     decision = VerificationDecision.decide(similarity)
+    metadata_db = MetadataDatabase()
+
+    metadata_db.add_verification_log(
+        user_id=claimed_user,
+        decision=decision["decision"],
+        similarity=round(decision["similarity"], 6),
+        threshold=VERIFICATION.similarity_threshold,
+        ciphertext_sha256=server_result.get(
+            "received_ciphertext_sha256"
+        ),
+        ciphertext_bytes=server_result.get(
+            "received_ciphertext_bytes"
+        ),
+        request_id=request.state.request_id,
+    )
 
     audit = _audit(
         request,
@@ -612,6 +716,27 @@ def verify_encrypted(
     decryption_ms = (perf_counter() - decrypt_started) * 1000
 
     decision = VerificationDecision.decide(similarity)
+    metadata_db = MetadataDatabase()
+
+    log_id = metadata_db.add_verification_log(
+        user_id=user_id,
+        decision=decision["decision"],
+        similarity=round(decision["similarity"], 6),
+        threshold=VERIFICATION.similarity_threshold,
+        ciphertext_sha256=encrypted_result.get(
+            "received_ciphertext_sha256"
+        ),
+        ciphertext_bytes=encrypted_result.get(
+            "received_ciphertext_bytes"
+        ),
+        request_id=request.state.request_id,
+    )
+
+    ciphertext_path = _CIPHERTEXT_LOG_DIR / f"{log_id}.bin"
+    temporary_path = _CIPHERTEXT_LOG_DIR / f"{log_id}.tmp"
+
+    temporary_path.write_bytes(ciphertext_bytes)
+    temporary_path.replace(ciphertext_path)
 
     return {
         "success": True,

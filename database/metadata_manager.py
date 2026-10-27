@@ -10,8 +10,8 @@ class MetadataDatabase:
             parents=True,
             exist_ok=True
         )
-
         self._create_table()
+        self._create_verification_logs_table()
 
     def _connect(self):
         return sqlite3.connect(self.db_path)
@@ -92,3 +92,57 @@ class MetadataDatabase:
             """)
 
             return cursor.fetchone()[0]
+
+    def _create_verification_logs_table(self):
+        with self._connect() as conn:
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS verification_logs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id TEXT NOT NULL,
+                    timestamp TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    decision TEXT NOT NULL,
+                    similarity REAL NOT NULL,
+                    threshold REAL NOT NULL,
+                    ciphertext_sha256 TEXT,
+                    ciphertext_bytes INTEGER,
+                    request_id TEXT
+                )
+            """)
+            conn.commit()
+
+    def add_verification_log(
+        self,
+        user_id,
+        decision,
+        similarity,
+        threshold,
+        ciphertext_sha256=None,
+        ciphertext_bytes=None,
+        request_id=None,
+    ):
+        with self._connect() as conn:
+            cursor = conn.execute(
+                """
+                INSERT INTO verification_logs (
+                    user_id,
+                    decision,
+                    similarity,
+                    threshold,
+                    ciphertext_sha256,
+                    ciphertext_bytes,
+                    request_id
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    user_id,
+                    decision,
+                    similarity,
+                    threshold,
+                    ciphertext_sha256,
+                    ciphertext_bytes,
+                    request_id,
+                ),
+            )
+            conn.commit()
+            return cursor.lastrowid

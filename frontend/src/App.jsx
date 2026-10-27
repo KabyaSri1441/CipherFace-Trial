@@ -28,6 +28,8 @@ import {
   getLfwIdentity,
   getStatus,
   getTemplates,
+  getVerificationLogs,
+  getVerificationCiphertext,
   getAuditEvents,
   getResearchSummary,
   deleteTemplate,
@@ -83,6 +85,7 @@ function App() {
   const [status, setStatus] = useState(initialStatus);
   const [statusLoaded, setStatusLoaded] = useState(false);
   const [templates, setTemplates] = useState([]);
+  const [verificationLogs, setVerificationLogs] = useState([]);
   const [auditEvents, setAuditEvents] = useState([]);
   const [research, setResearch] = useState(null);
   const [notice, setNotice] = useState("");
@@ -99,16 +102,15 @@ function App() {
   const navigation = [
     ["overview", "Home", Activity],
     ["client", "User Portal", Fingerprint],
-    ["enrollment", "Enrollment", UserRoundPlus],
     ["server", "Server Console", Server],
+    ["database", "Database & Logs", Database],
   ];
+
   const visibleNavigation = navigation.filter(([id]) => {
     if (activeView === "client") return id === "client";
-
-    if (activeView === "server" || activeView === "enrollment") {
-      return id === "server" || id === "enrollment";
+    if (activeView === "server" || activeView === "database") {
+      return id === "server" || id === "database";
     }
-
     return id === "overview";
   });
 
@@ -135,11 +137,12 @@ function App() {
 
   async function refresh() {
     try {
-      const [nextStatus, nextTemplates, nextAudit] = await Promise.all([
-        getStatus(), getTemplates(), getAuditEvents(),
+      const [nextStatus, nextTemplates, nextAudit, nextVerificationLogs,] = await Promise.all([
+        getStatus(), getTemplates(), getAuditEvents(), getVerificationLogs(),
       ]);
       setStatus(nextStatus);
       setTemplates(nextTemplates);
+      setVerificationLogs(nextVerificationLogs);
       setClaimedUser((current) => current || nextTemplates[0]?.name || "");
       setAuditEvents(nextAudit);
       setStatusLoaded(true);
@@ -271,18 +274,29 @@ function App() {
     && posture.server_has_plaintext_embedding_route === false;
   const viewTitle = navigation.find(([id]) => id === activeView)?.[1] || "Command Center";
   const workspaceProps = {
-    action: activeView === "enrollment" ? "enroll" : clientAction,
-    setAction: (action) => {
-      setClientAction(action);
-      setActiveView(action === "enroll" ? "enrollment" : "client");
-    },
-    busy, verifyFile, setVerifyFile, enrollFile, setEnrollFile, name, setName,
-    claimedUser, setClaimedUser, result, inspection,
-    submitVerify, submitEnroll, status, templates, setNotice, setResult,
-    setInspection, conferenceMode,
-    hideActionSelector: true,
+    action: clientAction,
+    setAction: setClientAction,
+    busy,
+    verifyFile,
+    setVerifyFile,
+    enrollFile,
+    setEnrollFile,
+    name,
+    setName,
+    claimedUser,
+    setClaimedUser,
+    result,
+    inspection,
+    submitVerify,
+    submitEnroll,
+    status,
+    templates,
+    setNotice,
+    setResult,
+    setInspection,
+    conferenceMode,
+    hideActionSelector: false,
   };
-
 
   if (!authenticated) {
     if (!selectedRole) {
@@ -476,45 +490,44 @@ function App() {
             workspace={<ClientWorkspace {...workspaceProps} encryptedEmbedding={encryptedEmbedding} hideActionSelector />}
           />
         )}
-        {(activeView === "client") && (
+        {activeView === "client" && (
           <>
-            {activeView === "client" && <div className="console-intro"><div className="eyebrow">TRUSTED LOCAL PROCESS / PORT 8001</div><h2>Client Console</h2><p>Image processing and plaintext embeddings stay local. The serialized CKKS ciphertext below is the actual payload returned by the client after transmission.</p></div>}
-            <ClientWorkspace {...workspaceProps} encryptedEmbedding={encryptedEmbedding} hideActionSelector />
+            <div className="console-intro">
+              <div className="eyebrow">
+                TRUSTED LOCAL PROCESS / PORT 8001
+              </div>
+              <h2>User Portal</h2>
+              <p>
+                Verify an enrolled identity or register a new user.
+                Face processing and encryption happen locally.
+              </p>
+            </div>
+            <ClientWorkspace
+              {...workspaceProps}
+              encryptedEmbedding={encryptedEmbedding}
+              hideActionSelector={false}
+            />
           </>
         )}
         {activeView === "server" && (
-          <>
-            <ServerConsole
-              status={status}
-              templates={templates}
-              result={result}
-              encryptedEmbedding={encryptedEmbedding}
-              claimedUser={claimedUser}
-              setClaimedUser={setClaimedUser}
-              busy={busy}
-              onVerify={submitManualVerification}
-            />
-
-            {activeView === "enrollment" && (
-              <>
-                <div className="console-intro">
-                  <div className="eyebrow">TRUSTED LOCAL PROCESS / PORT 8001</div>
-                  <h2>Enrollment Console</h2>
-                  <p>
-                    Register a new identity. Face processing happens locally,
-                    and only the encrypted template is stored.
-                  </p>
-                </div>
-
-                <ClientWorkspace
-                  {...workspaceProps}
-                  action="enroll"
-                  encryptedEmbedding={encryptedEmbedding}
-                  hideActionSelector
-                />
-              </>
-            )}
-          </>
+          <ServerConsole
+            status={status}
+            templates={templates}
+            result={result}
+            encryptedEmbedding={encryptedEmbedding}
+            claimedUser={claimedUser}
+            setClaimedUser={setClaimedUser}
+            busy={busy}
+            onVerify={submitManualVerification}
+          />
+        )}
+        {activeView === "database" && (
+          <DatabaseLogsView
+            templates={templates}
+            logs={verificationLogs}
+            onDelete={removeTemplate}
+            onRefresh={refresh}
+          />
         )}
         {activeView === "privacy" && <PrivacyCenter status={status} auditEvents={auditEvents} />}
         {activeView === "security" && <ThreatModel status={status} />}
@@ -990,7 +1003,7 @@ function LegacyApp() {
     ["overview", "Overview", Activity],
     ["monitor", "Verification monitor", Network],
     ["transfer", "Encrypted embedding transfer", LockKeyhole],
-    ["database", "Encrypted database", Database],
+    ["database", "Database & Logs", Database],
     ["security", "Security / privacy model", ShieldCheck],
     ["evaluation", "Evaluation", Zap],
   ];
@@ -1225,7 +1238,12 @@ function LegacyApp() {
 
           {role === "evaluator" &&
             activeTab === "database" && (
-              <DatabaseView templates={templates} />
+              <DatabaseLogsView
+                templates={templates}
+                logs={verificationLogs}
+                onDelete={removeTemplate}
+                onRefresh={refresh}
+              />
             )}
 
           {role === "evaluator" &&
@@ -3561,6 +3579,459 @@ function Enroll({
           </span>
         </div>
       </div>
+    </div>
+  );
+}
+function DatabaseLogsView({ templates, logs, onDelete, onRefresh }) {
+  const [activeSection, setActiveSection] = useState("users");
+
+  return (
+    <div className="database-logs-view">
+      <div className="panel">
+        <PanelTitle
+          label="DATABASE / AUDIT"
+          title="Database & Logs"
+        />
+
+        <div className="database-section-tabs">
+          <button
+            type="button"
+            className={
+              activeSection === "users" ? "active" : ""
+            }
+            onClick={() => setActiveSection("users")}
+          >
+            <Database size={16} />
+            Enrolled Users
+          </button>
+
+          <button
+            type="button"
+            className={
+              activeSection === "logs" ? "active" : ""
+            }
+            onClick={() => setActiveSection("logs")}
+          >
+            <Activity size={16} />
+            Verification Logs
+          </button>
+        </div>
+      </div>
+
+      {activeSection === "users" && (
+        <DatabaseView
+          templates={templates}
+          onDelete={onDelete}
+        />
+      )}
+
+      {activeSection === "logs" && (
+        <VerificationLogsSection
+          logs={logs}
+          onRefresh={onRefresh}
+        />
+      )}
+    </div>
+  );
+}
+
+function VerificationLogsSection({ logs = [], onRefresh }) {
+  const [selectedLog, setSelectedLog] = useState(null);
+  const [ciphertextData, setCiphertextData] = useState(null);
+  const [ciphertextLoading, setCiphertextLoading] = useState(false);
+  const [ciphertextError, setCiphertextError] = useState("");
+  const [copyMessage, setCopyMessage] = useState("");
+
+  const formatTimestamp = (value) => {
+    if (!value) return "Unknown";
+
+    const date = new Date(value);
+
+    return Number.isNaN(date.getTime())
+      ? value
+      : date.toLocaleString();
+  };
+  const loadCiphertext = async () => {
+    setCiphertextLoading(true);
+    setCiphertextError("");
+    setCiphertextData(null);
+    setCopyMessage("");
+
+    try {
+      const data = await getVerificationCiphertext(selectedLog.id);
+
+      if (!data.integrity_ok) {
+        throw new Error("Ciphertext integrity verification failed.");
+      }
+
+      setCiphertextData(data);
+    } catch (error) {
+      setCiphertextError(
+        error.message || "Failed to retrieve the ciphertext."
+      );
+    } finally {
+      setCiphertextLoading(false);
+    }
+  };
+
+  const copyCiphertext = async () => {
+    if (!ciphertextData?.ciphertext_base64) return;
+
+    try {
+      await navigator.clipboard.writeText(
+        ciphertextData.ciphertext_base64
+      );
+      setCopyMessage("Ciphertext copied to clipboard.");
+    } catch {
+      setCopyMessage(
+        "Clipboard access failed. Select and copy the ciphertext manually."
+      );
+    }
+  };
+
+  const downloadCiphertext = () => {
+    if (!ciphertextData?.ciphertext_base64) return;
+
+    try {
+      const binary = atob(ciphertextData.ciphertext_base64);
+      const bytes = new Uint8Array(binary.length);
+
+      for (let i = 0; i < binary.length; i++) {
+        bytes[i] = binary.charCodeAt(i);
+      }
+
+      const blob = new Blob([bytes], {
+        type: "application/octet-stream",
+      });
+
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+
+      link.href = url;
+      link.download = `verification-${ciphertextData.log_id}.bin`;
+
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      URL.revokeObjectURL(url);
+    } catch {
+      setCiphertextError("Failed to download the ciphertext.");
+    }
+  };
+
+  return (
+    <div className="panel">
+      <div className="panel-header">
+        <PanelTitle
+          label="VERIFICATION HISTORY"
+          title="Verification Logs"
+        />
+
+        <button
+          type="button"
+          className="secondary-button"
+          onClick={onRefresh}
+        >
+          <RefreshCw size={15} />
+          Refresh
+        </button>
+      </div>
+
+      <p>
+        {logs.length} verification record(s) retrieved
+        from the database.
+      </p>
+
+      {logs.length === 0 ? (
+        <div className="empty-state">
+          No verification records found. Perform a
+          verification and refresh this page.
+        </div>
+      ) : (
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Time</th>
+                <th>Claimed Identity</th>
+                <th>Decision</th>
+                <th>Similarity</th>
+                <th>Threshold</th>
+                <th>Details</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {logs.map((log) => (
+                <tr key={log.id}>
+                  <td>{formatTimestamp(log.timestamp)}</td>
+
+                  <td>{log.user_id}</td>
+
+                  <td>
+                    <span
+                      className={
+                        ["ACCEPT", "MATCH"].includes(String(log.decision).toUpperCase())
+                          ? "status-badge status-success"
+                          : "status-badge status-danger"
+                      }
+                    >
+                      {log.decision}
+                    </span>
+                  </td>
+
+                  <td>
+                    {Number(log.similarity).toFixed(6)}
+                  </td>
+
+                  <td>
+                    {Number(log.threshold).toFixed(6)}
+                  </td>
+
+                  <td>
+                    <button
+                      type="button"
+                      className="secondary-button"
+                      onClick={() => setSelectedLog(log)}
+                    >
+                      View details
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {selectedLog && (
+        <div className="verification-details-card">
+          <div className="verification-details-header">
+            <div>
+              <span className="verification-details-eyebrow">
+                VERIFICATION RECORD #{selectedLog.id}
+              </span>
+              <h3>Verification Details</h3>
+              <p>Detailed results of the biometric verification attempt.</p>
+            </div>
+
+            <span
+              className={
+                ["ACCEPT", "MATCH"].includes(
+                  String(selectedLog.decision).toUpperCase()
+                )
+                  ? "verification-result-badge accepted"
+                  : "verification-result-badge rejected"
+              }
+            >
+              {selectedLog.decision}
+            </span>
+          </div>
+
+          <div className="verification-metrics-grid">
+            <div className="verification-metric">
+              <span>CLAIMED IDENTITY</span>
+              <strong>{selectedLog.user_id}</strong>
+            </div>
+
+            <div className="verification-metric">
+              <span>TIMESTAMP</span>
+              <strong>{formatTimestamp(selectedLog.timestamp)}</strong>
+            </div>
+
+            <div className="verification-metric">
+              <span>SIMILARITY SCORE</span>
+              <strong>
+                {Number(selectedLog.similarity).toFixed(6)}
+              </strong>
+            </div>
+
+            <div className="verification-metric">
+              <span>MATCH THRESHOLD</span>
+              <strong>
+                {Number(selectedLog.threshold).toFixed(6)}
+              </strong>
+            </div>
+          </div>
+
+          <div className="verification-score-section">
+            <div className="verification-score-heading">
+              <span>Similarity score</span>
+              <strong>
+                {(
+                  Number(selectedLog.similarity) * 100
+                ).toFixed(2)}%
+              </strong>
+            </div>
+
+            <div
+              className="verification-score-track"
+              role="progressbar"
+              aria-label="Similarity score"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={Math.max(
+                0,
+                Math.min(100, Number(selectedLog.similarity) * 100)
+              )}
+            >
+              <div
+                className={
+                  Number(selectedLog.similarity) >=
+                  Number(selectedLog.threshold)
+                    ? "verification-score-fill accepted"
+                    : "verification-score-fill rejected"
+                }
+                style={{
+                  width: `${Math.max(
+                    0,
+                    Math.min(100, Number(selectedLog.similarity) * 100)
+                  )}%`,
+                }}
+              />
+
+              <div
+                className="verification-threshold-marker"
+                style={{
+                  left: `${Math.max(
+                    0,
+                    Math.min(100, Number(selectedLog.threshold) * 100)
+                  )}%`,
+                }}
+                title={`Threshold: ${Number(selectedLog.threshold).toFixed(6)}`}
+              />
+            </div>
+
+            <div className="verification-score-legend">
+              <span>
+                Threshold: {Number(selectedLog.threshold).toFixed(6)}
+              </span>
+              <span>
+                {Number(selectedLog.similarity) >=
+                Number(selectedLog.threshold)
+                  ? "Score meets threshold"
+                  : "Score below threshold"}
+              </span>
+            </div>
+          </div>
+
+          <div className="verification-metadata-section">
+            <h4>Encrypted Template Metadata</h4>
+
+            <div className="verification-metadata-grid">
+              <div className="verification-metadata-item">
+                <span>CIPHERTEXT SHA-256</span>
+                <code>
+                  {selectedLog.ciphertext_sha256 || "Unavailable"}
+                </code>
+              </div>
+
+              <div className="verification-metadata-item">
+                <span>CIPHERTEXT SIZE</span>
+                <strong>
+                  {selectedLog.ciphertext_bytes ?? "Unavailable"}
+                  {selectedLog.ciphertext_bytes != null ? " bytes" : ""}
+                </strong>
+              </div>
+
+              <div className="verification-metadata-item">
+                <span>REQUEST ID</span>
+                <code>
+                  {selectedLog.request_id || "Unavailable"}
+                </code>
+              </div>
+            </div>
+          </div>
+          <div className="verification-metadata-section">
+            <h4>Encrypted Verification Ciphertext</h4>
+
+            <p>
+              Retrieve the original encrypted verification payload.
+              Its SHA-256 hash and byte count are checked by the backend.
+            </p>
+
+            {!ciphertextData && (
+              <button
+                type="button"
+                className="secondary-button"
+                onClick={loadCiphertext}
+                disabled={ciphertextLoading}
+              >
+                {ciphertextLoading ? "Loading ciphertext..." : "View Ciphertext"}
+              </button>
+            )}
+
+            {ciphertextError && (
+              <p role="alert" className="ciphertext-error">
+                {ciphertextError}
+              </p>
+            )}
+
+            {ciphertextData && (
+              <>
+                <div className="verification-metadata-grid">
+                  <div className="verification-metadata-item">
+                    <span>INTEGRITY STATUS</span>
+                    <strong>
+                      {ciphertextData.integrity_ok
+                        ? "Verified"
+                        : "Verification failed"}
+                    </strong>
+                  </div>
+
+                  <div className="verification-metadata-item">
+                    <span>VERIFIED SHA-256</span>
+                    <code>{ciphertextData.sha256}</code>
+                  </div>
+
+                  <div className="verification-metadata-item">
+                    <span>PAYLOAD SIZE</span>
+                    <strong>{ciphertextData.bytes} bytes</strong>
+                  </div>
+                </div>
+
+                <div className="ciphertext-actions">
+                  <button
+                    type="button"
+                    className="secondary-button"
+                    onClick={copyCiphertext}
+                  >
+                    Copy Base64
+                  </button>
+
+                  <button
+                    type="button"
+                    className="secondary-button"
+                    onClick={downloadCiphertext}
+                  >
+                    Download .bin
+                  </button>
+                </div>
+
+                {copyMessage && <p>{copyMessage}</p>}
+
+                <textarea
+                  className="ciphertext-preview"
+                  value={ciphertextData.ciphertext_base64}
+                  readOnly
+                  rows={6}
+                  aria-label="Encrypted ciphertext in Base64"
+                />
+              </>
+            )}
+          </div>
+          <div className="verification-details-actions">
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={() => setSelectedLog(null)}
+            >
+              Close details
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

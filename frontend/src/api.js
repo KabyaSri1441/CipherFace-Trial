@@ -27,6 +27,14 @@ export function getTemplates() {
   return request("/api/templates");
 }
 
+export function getVerificationLogs() {
+  return request("/api/verification-logs");
+}
+
+export function getVerificationCiphertext(id) {
+  return request(`/api/verification-logs/${id}/ciphertext`);
+}
+
 export function getAuditEvents() {
   return Promise.resolve([]);
 }
